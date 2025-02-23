@@ -1,0 +1,9 @@
+[package]
+name = "cyclonedds-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = "1.0.217"
+thiserror = "2.0.11"
+cyclonedds-sys = { path = "../cyclonedds-sys" }
