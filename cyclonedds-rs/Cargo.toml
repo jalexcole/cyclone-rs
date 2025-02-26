@@ -7,3 +7,4 @@ edition = "2021"
 serde = "1.0.217"
 thiserror = "2.0.11"
 cyclonedds-sys = { path = "../cyclonedds-sys" }
+either = "1.14.0"

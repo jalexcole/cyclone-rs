@@ -1,15 +1,23 @@
 use cyclonedds_sys::*;
+use domain::DomainParticipant;
+use internal::InstanceHandle;
+use publisher::Publisher;
 use thiserror::Error;
 
 pub(crate) mod internal;
 
+pub mod core;
 pub mod dynamic;
+pub mod domain;
 pub mod psmx;
 pub mod statistics;
+pub mod publisher;
+pub mod subscriber;
+pub mod topic;
 
 #[derive(Debug)]
 pub enum ReturnCodes {
-    Ok(),
+    Ok,
     Error,
     Unsupported,
     BadParameter,
@@ -39,7 +47,7 @@ pub enum ReturnCodes {
 impl From<i32> for ReturnCodes {
     fn from(value: i32) -> Self {
         match value {
-            0 => ReturnCodes::Ok(),
+            0 => ReturnCodes::Ok,
             1 => ReturnCodes::Error,
             2 => ReturnCodes::Unsupported,
             3 => ReturnCodes::BadParameter,
@@ -64,7 +72,7 @@ impl From<i32> for ReturnCodes {
             22 => ReturnCodes::NotEnoughSpace,
             23 => ReturnCodes::OutOfRange,
             24 => ReturnCodes::ResultTooLarge,
-            _ => ReturnCodes::Error,
+            _ => panic!("Unknown return code: {}", value),
         }
     }
 }
@@ -85,7 +93,7 @@ pub trait Entity: Drop {
     /// This operation returns the participant to which the given entity belongs. For instance, it will return the Participant that was used when creating a Publisher that was used to create a DataWriter (when that DataWriter was provided here).
     ///
     /// `DOC_TODO`: Link to generic dds entity relations documentation.
-    fn participant(&self) -> Result<Participant, EntityParticipantError>;
+    fn participant(&self) -> Result<DomainParticipant, EntityParticipantError>;
     /// Get entity children.
     ///
     /// This operation returns the children that the entity contains. For instance, it will return all the Topics, Publishers and Subscribers of the Participant that was used to create those entities (when that Participant is provided here).
@@ -148,47 +156,11 @@ pub enum EntityParticipantError {
     AlreadyDeleted,
 }
 
-struct Publisher;
 
-impl Publisher {}
 
-struct Subscriber;
 
-struct DataReader {
-    reader: dds_entity_t,
-}
 
-pub struct DataWriter {
-    writer: dds_entity_t,
-}
 
-impl DataWriter {
-    /// Get PUBLICATION_MATCHED status.
-    ///
-    /// This operation gets the status value corresponding to
-    /// PUBLICATION_MATCHED and reset the status. The value can be obtained,
-    /// only if the status is enabled for an entity. NULL value for status is
-    /// allowed and it will reset the trigger value when status is enabled.
-    pub fn publication_matched_status(&self) -> Result<PublicationMatchedStatus, ReturnCodes> {
-        unsafe {
-            let mut status = dds_publication_matched_status_t {
-                total_count: 0,
-                total_count_change: 0,
-                current_count: 0,
-                current_count_change: 0,
-                last_subscription_handle: 0,
-            };
-
-            let result = dds_get_publication_matched_status(self.writer, &mut status);
-
-            if result != 0 {
-                return Err(ReturnCodes::from(result));
-            }
-
-            Ok(PublicationMatchedStatus { status })
-        }
-    }
-}
 
 pub struct PublicationMatchedStatus {
     status: dds_publication_matched_status_t,
@@ -229,34 +201,12 @@ pub struct RequestIncompatibleQosStatus {
     status: dds_requested_incompatible_qos_status_t,
 }
 
-struct InstanceHandle {
-    entity: dds_entity_t,
-    ihdl: *mut dds_instance_handle_t,
-}
+
 
 struct Children;
-struct DomanId;
+struct DomainId;
 struct Triggered;
-pub struct Topic;
 
-impl Topic {
-    fn new(
-        participant: &mut Participant,
-        descripter: &str,
-        name: &str,
-        qos: &Qos,
-        listener: *mut dds_listener_t,
-    ) {
-    }
-    /// Get INCONSISTENT_TOPIC status.
-    ///
-    /// This operation gets the status value corresponding to INCONSISTENT_TOPIC and reset the status. The value can be obtained, only if the status is enabled for an entity. NULL value for status is allowed and it will reset the trigger value when status is enabled.
-    pub fn dds_get_inconsistent_topic_status(
-        &self,
-    ) -> Result<InconsistentTopicStatus, ReturnCodes> {
-        todo!("not implemented")
-    }
-}
 
 pub struct InconsistentTopicStatus {
     status: dds_inconsistent_topic_status_t,
@@ -264,8 +214,6 @@ pub struct InconsistentTopicStatus {
 
 trait Liveliness {}
 
-use core::alloc;
-use core::ffi::c_void;
 
 pub struct Qos {
     qos: *mut cyclonedds_sys::dds_qos_t,
@@ -670,11 +618,12 @@ struct SampleLost;
 struct RequestedDeadlineMissed;
 struct RequestedIncompatibleQos;
 
-use std::os::macos::raw::stat;
+use std::ffi::c_void;
+use std::ptr::null_mut;
 use std::time::Duration;
-use std::{ffi::CString, os::raw::c_char};
+use std::ffi::CString;
 
-use cyclonedds_sys::{dds_domainid_t, dds_entity_t, dds_listener_t};
+use cyclonedds_sys::{dds_entity_t, dds_listener_t};
 
 struct Domain {
     domain: *mut dds_entity_t,
@@ -707,9 +656,18 @@ impl Drop for Domain {
     }
 }
 
-pub struct Participant {}
+pub struct Participant {
+    participant: dds_entity_t,
+}
 
 impl Participant {
+    pub fn new(domain_id: u32) -> Result<Participant, ReturnCodes> {
+        match unsafe { cyclonedds_sys::dds_create_participant(domain_id, null_mut(), null_mut()) } {
+            0 => Ok(Participant { participant: 0 }),
+            _ => todo!("not implemented"),
+        }
+    }
+
     pub fn create_publisher(
         &mut self,
         qos: &mut Qos,
@@ -719,6 +677,19 @@ impl Participant {
     }
 }
 
-struct Statistics {
-    statistics: *mut cyclonedds_sys::dds_statistics,
+pub enum Statuses {
+    InconsistentTopicStatus(InconsistentTopicStatus),
+    OfferedDeadlineMissedStatus(OfferedDeadlineMissedStatus),
+    OfferedIncompatibleQosStatus(OfferedIncompatibleQosStatus),
+    LivelinessLostStatus(LivelinessLostStatus),
+    PublicationMatchedStatus(PublicationMatchedStatus),
+    RequestDeadlineMissedStatus,
+    RequestIncompatibleQosStatus,
+    SampleRejectedStatus,
+    LivelinessChangedStatus,
+    SubscriptionMatchedStatus,
+    SampleLostStatus,
 }
+
+
+

@@ -4,35 +4,37 @@
 // safe.rs
 
 use cyclonedds_sys::*;
+use core::panic;
+use std::ffi::c_uint;
 use std::os::raw::c_int;
 use std::ptr;
+
+use crate::subscriber::{self, Subscriber};
 
 /// A safe wrapper around a Cyclone DDS Participant.
 ///
 /// In Cyclone DDS, participants are represented by the dds_entity_t type.
-pub struct Participant {
-    inner: dds_entity_t,
+pub struct DomainParticipant {
+    pub(super) participant: dds_entity_t,
 }
 
-impl Participant {
+impl DomainParticipant {
     /// Creates a new Participant for the given domain.
     ///
     /// Returns a `Result` with a safe Participant on success,
     /// or the negative error code on failure.
-    pub fn new(domain_id: i32) -> Result<Self, c_int> {
-        let mut participant: dds_entity_t = 0;
-        // This call is unsafe because it works with raw pointers.
-        let ret = unsafe {
-            // Create a participant. Here, we pass null pointers for QoS and listener.
-            // Adjust parameters as required by your cyclonedds-sys bindings.
-            // dds_create_participant(&mut participant as *mut dds_entity_t, domain_id, ptr::null())
-        };
+    pub fn new(domain_id: u32) -> Result<Self, c_int> {
+        unsafe {
+            // Create a participant. The `dds_create_participant` function returns the participant handle
+            // or a negative error code if creation fails.
+            let participant = dds_create_participant(domain_id as c_uint, ptr::null(), ptr::null());
 
-        // if ret < 0 {
-        //     Err(ret)
-        // } else {
-        //     Ok(Participant { inner: participant })
-        // }
+            if participant < 0 {
+                Err(participant as c_int)
+            } else {
+                Ok(DomainParticipant { participant })
+            }
+        }
     }
 
     /// Example method that could wrap an operation on the participant.
@@ -45,14 +47,40 @@ impl Participant {
             // dds_enable_discovery(self.inner);
         }
     }
+
+    pub fn subscriber(&mut self) -> Subscriber {
+        Subscriber::new(&self)
+    }
 }
 
-impl Drop for Participant {
+impl Drop for DomainParticipant {
     fn drop(&mut self) {
         unsafe {
-            // Clean up the participant resource when Participant goes out of scope.
-            // Note: Some DDS implementations require a different or additional cleanup.
-            dds_delete(self.inner);
+            if self.participant >= 0 {
+                dds_delete(self.participant);
+            } else {
+                panic!("Failed to delete participant");
+            }
         }
+    }
+}
+
+
+pub trait DomainParticipantListener: Drop {
+
+}
+
+
+pub mod qos {
+    pub struct DomainParticipantQos {}
+}
+
+#[cfg(test)]
+mod test {
+
+    #[test]
+    fn test_participant() {
+        let participant = super::DomainParticipant::new(0).unwrap();
+        drop(participant);
     }
 }
