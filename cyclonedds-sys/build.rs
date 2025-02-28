@@ -10,7 +10,7 @@ fn main() {
     let cyclone_include = dst.join("include");
 
     // Construct the full path to the header file.
-    let header_path = cyclone_include.join("ddsc").join("dds.h");
+    // let header_path = cyclone_include.join("ddsc").join("dds.h");
 
     // Invalidate the built crate when wrapper.h changes.
     println!("cargo:rerun-if-changed=wrapper.h");
