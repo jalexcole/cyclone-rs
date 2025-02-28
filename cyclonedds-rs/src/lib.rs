@@ -87,7 +87,8 @@ pub trait Entity: Drop {
     /// This operation returns the parent to which the given entity belongs. For instance, it will return the Participant that was used when creating a Publisher (when that Publisher was provided here).
     ///
     /// When a reader or a writer are created with a participant, then a subscriber or publisher are created implicitly. This function will return the implicit parent and not the used participant.
-    fn parent(&self) -> Result<impl Entity, ParentError>;
+    // fn parent(&self) -> Result<impl Entity, ParentError>;
+    
     /// Get entity participant.
     ///
     /// This operation returns the participant to which the given entity belongs. For instance, it will return the Participant that was used when creating a Publisher that was used to create a DataWriter (when that DataWriter was provided here).
@@ -103,7 +104,8 @@ pub trait Entity: Drop {
     /// When supplying NULL as list and 0 as size, you can use this to acquire the number of children without having to pre-allocate a list.
     ///
     /// When a reader or a writer are created with a participant, then a subscriber or publisher are created implicitly. When used on the participant, this function will return the implicit subscriber and/or publisher and not the related reader/writer.
-    fn children(&self) -> Result<Vec<impl Entity>, ReturnCodes>;
+    // fn children(&self) -> Result<Vec<impl Entity>, ReturnCodes>;
+
     /// Get the domain id to which this entity is attached.
     ///
     /// When creating a participant entity, it is attached to a certain domain.

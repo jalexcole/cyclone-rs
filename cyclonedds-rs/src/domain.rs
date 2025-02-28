@@ -9,7 +9,7 @@ use std::ffi::c_uint;
 use std::os::raw::c_int;
 use std::ptr;
 
-use crate::subscriber::{self, Subscriber};
+use crate::{publisher::Publisher, subscriber::{self, Subscriber}};
 
 /// A safe wrapper around a Cyclone DDS Participant.
 ///
@@ -50,6 +50,10 @@ impl DomainParticipant {
 
     pub fn subscriber(&mut self) -> Subscriber {
         Subscriber::new(&self)
+    }
+
+    pub fn publisher(&mut self) -> Publisher {
+        todo!("not implemented")
     }
 }
 

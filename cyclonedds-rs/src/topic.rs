@@ -1,3 +1,5 @@
+use cyclonedds_sys::dds_entity_kind;
+
 use crate::{domain::DomainParticipant, internal::InstanceHandle, Entity, EntityParticipantError, InconsistentTopicStatus, Participant, ReturnCodes};
 
 pub enum FindScope {
@@ -18,6 +20,14 @@ impl<T> Drop for Topic<T> {
         unsafe {
             cyclonedds_sys::dds_delete(self.topic);
         }
+    }
+}
+
+impl<T> TryFrom<AnyTopic> for Topic<T> {
+    type Error = ReturnCodes;
+
+    fn try_from(value: AnyTopic) -> Result<Self, Self::Error> {
+        todo!()
     }
 }
 
@@ -63,9 +73,7 @@ impl Entity for AnyTopic {
         }
     }
 
-    fn parent(&self) -> Result<impl Entity, crate::ParentError> {
-        let parent = unsafe { cyclonedds_sys::dds_get_parent(self.topic) };
-    }
+    
 
     fn participant(&self) -> Result<DomainParticipant, crate::EntityParticipantError> {
          let parent_entity = unsafe { cyclonedds_sys::dds_get_parent(self.topic) };
@@ -77,9 +85,7 @@ impl Entity for AnyTopic {
         }
     }
 
-    fn children(&self) -> Result<Vec<impl Entity>, ReturnCodes> {
-        return Err(ReturnCodes::Ok)
-    }
+    
 
     fn domain_id(&self) -> Result<u32, ReturnCodes> {
         let mut domain_id = 0;
@@ -96,7 +102,9 @@ impl Entity for AnyTopic {
     }
 
     fn get_topic(&self) -> Result<impl Entity, ReturnCodes> {
-        todo!()
+        Ok(Self {
+            topic: self.topic
+        })
     }
 
     fn assert_liveliness(&self) -> Result<(), ReturnCodes> {
@@ -117,6 +125,14 @@ impl Drop for AnyTopic {
     }
 }
 
+impl<T> From<Topic<T>> for AnyTopic {
+    fn from(topic: Topic<T>) -> Self {
+        
+            todo!("Need to implement the cyclone dds copy function")
+        
+    }
+}
+
 pub trait TopicSupport {}
 
 pub enum TopicIdKind {
@@ -133,3 +149,16 @@ pub mod qos {
 
 pub struct Filter {}
 
+
+
+pub trait MessageType {
+    fn name() -> String;
+    fn type_name() -> String;
+}
+
+pub trait XType {
+    type Extends;
+
+    fn extends() -> Self::Extends;
+    fn extends_name() -> String;
+}
