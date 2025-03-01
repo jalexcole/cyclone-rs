@@ -1,2 +1,2 @@
 [workspace]
-members = [ "cyclonedds-rs","cyclonedds-sys"]
+members = [ "cyclonedds-rs","cyclonedds-sys", "cyclonedds-derive"]

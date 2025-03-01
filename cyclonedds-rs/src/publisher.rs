@@ -7,10 +7,12 @@ use std::{
 
 use cyclonedds_sys::dds_delete;
 
-use crate::{internal::InstanceHandle, PublicationMatchedStatus, ReturnCodes};
+use crate::{
+    core::ReturnCodes, domain::DomainParticipant, internal::InstanceHandle, topic::TopicType,
+};
 
 pub struct Publisher {
-    publisher: cyclonedds_sys::dds_entity_t,
+    pub(crate) publisher: cyclonedds_sys::dds_entity_t,
 }
 
 impl Publisher {
@@ -28,7 +30,7 @@ impl Publisher {
         }
     }
 
-    pub fn create_datawriter<T>(&mut self) -> Result<DataWriter<T>, ReturnCodes> {
+    pub fn create_datawriter<T: TopicType>(&mut self) -> Result<DataWriter<T>, ReturnCodes> {
         todo!("not implemented")
     }
 
@@ -52,12 +54,33 @@ impl Publisher {
     }
 }
 
-pub struct DataWriter<T> {
+impl TryFrom<DomainParticipant> for Publisher {
+    type Error = ReturnCodes;
+    fn try_from(value: DomainParticipant) -> Result<Self, Self::Error> {
+        let entity_handle = unsafe {
+            cyclonedds_sys::dds_create_publisher(
+                value.participant,
+                std::ptr::null(),
+                std::ptr::null(),
+            )
+        };
+
+        if entity_handle < 0 {
+            Err(ReturnCodes::from(entity_handle))
+        } else {
+            Ok(Publisher {
+                publisher: entity_handle,
+            })
+        }
+    }
+}
+
+pub struct DataWriter<T: TopicType> {
     writer: cyclonedds_sys::dds_entity_t,
     _marker: PhantomData<T>,
 }
 
-impl<T> DataWriter<T> {
+impl<T: TopicType> DataWriter<T> {
     /// Get PUBLICATION_MATCHED status.
     ///
     /// This operation gets the status value corresponding to
@@ -112,8 +135,17 @@ impl<T> DataWriter<T> {
     ///
     /// With this API, the value of the source timestamp is automatically made
     /// available to the data reader by the service.
-    pub fn write(&mut self, data: &T) -> Result<(), ReturnCodes> {
-        match unsafe { cyclonedds_sys::dds_write(self.writer, data as *const T as *mut c_void) } {
+    pub fn write(&mut self, data: &T) -> Result<(), ReturnCodes>
+    where
+        T: serde::Serialize,
+    {
+        // Serialize the data to a byte vector.
+        let serialized = bincode::serialize(data).map_err(|e| ReturnCodes::Unsupported)?;
+
+        // Write the serialized data to DDS.
+        // Note: Ensure that `dds_write` expects the serialized layout.
+        match unsafe { cyclonedds_sys::dds_write(self.writer, serialized.as_ptr() as *mut c_void) }
+        {
             0 => Ok(()),
             result => Err(ReturnCodes::from(result)),
         }
@@ -121,19 +153,35 @@ impl<T> DataWriter<T> {
     /// Flush a writers batched writes
     ///
     /// When using write batching you can manually batch small writes into
-    /// larger datapackets for network efficiency. The normal [DataWriter::write()] no
-    /// longer guarantee that data is sent on the network automatically.
+    /// larger datapackets for network efficiency. The normal
+    /// [DataWriter::write()] no longer guarantee that data is sent on the
+    /// network automatically.
     pub fn write_flush(&mut self) -> Result<(), ReturnCodes> {
         todo!("not implemented")
     }
-
-    pub fn write_cdr(
-        &mut self,
-        data: *mut cyclonedds_sys::ddsi_serdata,
-    ) -> Result<(), ReturnCodes> {
-        todo!("not implemented")
+    /// Write a serialized value of a data instance
+    ///
+    /// This call causes the writer to write the serialized value that is
+    /// provided in the serdata argument. Timestamp and statusinfo fields are
+    /// set to the current time and 0 (indicating a regular write),
+    /// respectively.
+    pub fn write_cdr(&mut self, data: &[u8]) -> Result<(), ReturnCodes> {
+        match unsafe {
+            cyclonedds_sys::dds_writecdr(
+                self.writer,
+                data.as_ptr() as *mut cyclonedds_sys::ddsi_serdata,
+            )
+        } {
+            0 => Ok(()),
+            result => Err(ReturnCodes::from(result)),
+        }
     }
 
+    /// Write a serialized value of a data instance
+    ///
+    /// This call causes the writer to write the serialized value that is
+    /// provided in the serdata argument. Timestamp and statusinfo are used as
+    /// is.
     pub fn forwardcdr(
         &mut self,
         data: *mut cyclonedds_sys::ddsi_serdata,
@@ -141,6 +189,7 @@ impl<T> DataWriter<T> {
         todo!("not implemented")
     }
 
+    /// Write the value of a data instance along with the source timestamp passed.
     pub fn write_ts(&self, data: &T, timestamp: &Instant) -> Result<(), ReturnCodes> {
         todo!("not implemented")
     }
@@ -160,7 +209,7 @@ impl<T> DataWriter<T> {
     }
 }
 
-impl<T> Drop for DataWriter<T> {
+impl<T: TopicType> Drop for DataWriter<T> {
     fn drop(&mut self) {
         match unsafe { dds_delete(self.writer) } {
             0 => (),
@@ -190,9 +239,9 @@ impl AnyDataWriter {
 
     /// Registers an instance
     ///
-    /// This operation registers an instance with a key value to the data 
-    /// writer and returns an instance handle that could be used for successive 
-    /// write & dispose operations. When the handle is not allocated, the 
+    /// This operation registers an instance with a key value to the data
+    /// writer and returns an instance handle that could be used for successive
+    /// write & dispose operations. When the handle is not allocated, the
     /// function will return an error and the handle will be un-touched.
     pub fn register_instance(&mut self, data: &impl Any) -> Result<InstanceHandle, ReturnCodes> {
         todo!("not implemented")
@@ -203,7 +252,7 @@ impl AnyDataWriter {
     }
 }
 
-impl<T> From<DataWriter<T>> for AnyDataWriter {
+impl<T: TopicType> From<DataWriter<T>> for AnyDataWriter {
     fn from(value: DataWriter<T>) -> Self {
         todo!()
     }
@@ -215,5 +264,15 @@ impl Drop for AnyDataWriter {
             0 => (),
             _ => panic!("Failed to delete writer, "),
         }
+    }
+}
+
+pub struct PublicationMatchedStatus {
+    status: cyclonedds_sys::dds_publication_matched_status_t,
+}
+
+impl PublicationMatchedStatus {
+    pub fn current_count(&self) -> u32 {
+        self.status.current_count
     }
 }

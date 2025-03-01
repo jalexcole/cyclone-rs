@@ -1,3 +1,7 @@
 {
-    "cmake.sourceDirectory": "/Users/alex/dev/cyclone-rs/cyclonedds"
+    "cmake.sourceDirectory": "/Users/alex/dev/cyclone-rs/cyclonedds",
+    "cSpell.words": [
+        "acks",
+        "cyclonedds"
+    ]
 }

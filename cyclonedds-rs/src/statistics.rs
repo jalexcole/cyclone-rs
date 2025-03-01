@@ -2,7 +2,9 @@
 
 use cyclonedds_sys::dds_delete_statistics;
 
-use crate::{Entity, ReturnCodes};
+use crate::core::{Entity, ReturnCodes};
+
+
 
 
 pub enum StatKind {

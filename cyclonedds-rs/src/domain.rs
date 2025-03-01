@@ -2,20 +2,18 @@
 
 
 // safe.rs
-
-use cyclonedds_sys::*;
 use core::panic;
 use std::ffi::c_uint;
 use std::os::raw::c_int;
 use std::ptr;
 
-use crate::{publisher::Publisher, subscriber::{self, Subscriber}};
+use crate::{core::{qos::Qos, ReturnCodes}, publisher::Publisher, subscriber::Subscriber, topic::{AnyTopic, Topic, TopicType}};
 
 /// A safe wrapper around a Cyclone DDS Participant.
 ///
 /// In Cyclone DDS, participants are represented by the dds_entity_t type.
 pub struct DomainParticipant {
-    pub(super) participant: dds_entity_t,
+    pub(super) participant: cyclonedds_sys::dds_entity_t,
 }
 
 impl DomainParticipant {
@@ -27,7 +25,7 @@ impl DomainParticipant {
         unsafe {
             // Create a participant. The `dds_create_participant` function returns the participant handle
             // or a negative error code if creation fails.
-            let participant = dds_create_participant(domain_id as c_uint, ptr::null(), ptr::null());
+            let participant = cyclonedds_sys::dds_create_participant(domain_id as c_uint, ptr::null(), ptr::null());
 
             if participant < 0 {
                 Err(participant as c_int)
@@ -37,23 +35,37 @@ impl DomainParticipant {
         }
     }
 
-    /// Example method that could wrap an operation on the participant.
-    ///
-    /// Replace this with actual functionality as needed.
-    pub fn do_something(&self) {
-        unsafe {
-            // For example, if there's a function to enable discovery on the participant,
-            // you could call it here:
-            // dds_enable_discovery(self.inner);
-        }
-    }
-
     pub fn subscriber(&mut self) -> Subscriber {
         Subscriber::new(&self)
     }
 
-    pub fn publisher(&mut self) -> Publisher {
-        todo!("not implemented")
+    pub fn publisher(&mut self) -> Result<Publisher, ReturnCodes> {
+        let entity_handle = unsafe {
+            cyclonedds_sys::dds_create_publisher(
+                self.participant,
+                ptr::null(),
+                ptr::null(),
+            )
+        };
+
+        if entity_handle < 0 {
+            Err(ReturnCodes::from(entity_handle))
+        } else {
+            Ok(Publisher { publisher: entity_handle })
+        }
+
+    }
+
+    pub fn topic<T: TopicType>(&mut self) -> Result<Topic<T>, ReturnCodes> {
+        todo!()
+    }
+
+    pub fn any_tpic(&mut self) -> Result<AnyTopic, ReturnCodes> {
+        todo!()
+    }
+
+    pub fn qos(&self) -> Result<Qos, ReturnCodes> {
+        todo!()
     }
 }
 
@@ -61,7 +73,7 @@ impl Drop for DomainParticipant {
     fn drop(&mut self) {
         unsafe {
             if self.participant >= 0 {
-                dds_delete(self.participant);
+                cyclonedds_sys::dds_delete(self.participant);
             } else {
                 panic!("Failed to delete participant");
             }
@@ -81,10 +93,32 @@ pub mod qos {
 
 #[cfg(test)]
 mod test {
+    use std::time::Duration;
+
+    use crate::{domain::DomainParticipant, ReliabilityKind};
+
 
     #[test]
     fn test_participant() {
         let participant = super::DomainParticipant::new(0).unwrap();
         drop(participant);
     }
+   
+
+    
+
+    // Test that a DomainParticipant cleans up without error.
+    #[test]
+    fn test_participant_lifecycle() {
+        {
+            let participant = DomainParticipant::new(0).expect("Failed to create participant");
+            // Optionally, do something with the participant here.
+        }
+        // After the scope ends, the participant is dropped.
+        // Pause briefly to allow asynchronous cleanup if necessary.
+        std::thread::sleep(Duration::from_millis(50));
+        // If no panic occurs, the test passes.
+    }
+
+   
 }

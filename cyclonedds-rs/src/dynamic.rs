@@ -2,7 +2,7 @@
 
 use cyclonedds_sys::{dds_dynamic_type, dds_dynamic_type_t};
 
-use crate::{Entity, ReturnCodes};
+use crate::core::{Entity, ReturnCodes};
 
 /// Enumeration with the type kind values that can be used to create a dynamic type.
 pub enum DynamicTypeKind {

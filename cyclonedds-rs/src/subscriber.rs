@@ -3,7 +3,11 @@ use std::{
     ptr::{null, null_mut},
 };
 
-use crate::{domain::DomainParticipant, topic::Topic, ReturnCodes};
+use serde::Serialize;
+
+use crate::{core::ReturnCodes, domain::DomainParticipant, topic::{self, Topic, TopicType}};
+
+
 
 pub struct Subscriber {
     subscriber: cyclonedds_sys::dds_entity_t,
@@ -31,7 +35,7 @@ impl Subscriber {
         }
     }
 
-    pub fn create_reader<T>(&self, topic: &Topic<T>) -> Result<DataReader<T>, ReturnCodes> {
+    pub fn create_reader<T: TopicType>(&self, topic: &Topic<T>) -> Result<DataReader<T>, ReturnCodes> {
         unsafe {
             let reader = cyclonedds_sys::dds_create_reader(
                 self.subscriber,
@@ -66,7 +70,7 @@ impl Drop for Subscriber {
     }
 }
 
-pub struct DataReader<T> {
+pub struct DataReader<T: TopicType> {
     reader: cyclonedds_sys::dds_entity_t,
     _marker: PhantomData<T>,
 }
