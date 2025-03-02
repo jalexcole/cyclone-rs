@@ -2,6 +2,7 @@ use std::{
     any::Any,
     marker::PhantomData,
     os::raw::c_void,
+    ptr,
     time::{Duration, Instant},
 };
 
@@ -16,6 +17,18 @@ pub struct Publisher {
 }
 
 impl Publisher {
+    pub(crate) fn new(participant: &DomainParticipant) -> Result<Publisher, ReturnCodes> {
+        let publisher = unsafe {
+            cyclonedds_sys::dds_create_publisher(participant.participant, ptr::null(), ptr::null())
+        };
+
+        if publisher < 0 {
+            Err(ReturnCodes::from(-publisher))
+        } else {
+            Ok(Publisher { publisher })
+        }
+    }
+
     pub fn suspend(&mut self) -> Result<(), ReturnCodes> {
         match unsafe { cyclonedds_sys::dds_suspend(self.publisher) } {
             0 => Ok(()),

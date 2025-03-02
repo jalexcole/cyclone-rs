@@ -31,7 +31,7 @@ pub mod HelloWorldData {
     ///   };
     /// };
     /// ```
-    #[derive(Serialize, Debug, Clone)]
+    #[derive(Serialize, Debug, Clone, PartialEq)]
     pub struct Msg {
         pub userID: i64,
         pub message: String,

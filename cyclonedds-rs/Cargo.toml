@@ -10,6 +10,7 @@ cyclonedds-sys = { path = "../cyclonedds-sys" }
 either = "1.14.0"
 bincode = "1.3.3"
 cdr-encoding = "0.10.2"
+# tracing = "0.1.41"
 
 [dev-dependencies]
 serde = {version = "1.0.217",features = ["derive"] }

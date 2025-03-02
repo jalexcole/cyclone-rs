@@ -3,22 +3,28 @@ use std::{
     ptr::{null, null_mut},
 };
 
-use serde::Serialize;
-
-use crate::{core::ReturnCodes, domain::DomainParticipant, topic::{self, Topic, TopicType}};
-
-
+use crate::{
+    core::ReturnCodes,
+    domain::DomainParticipant,
+    topic::{Topic, TopicType},
+};
 
 pub struct Subscriber {
     subscriber: cyclonedds_sys::dds_entity_t,
 }
 
 impl Subscriber {
-    pub(crate) fn new(participant: &DomainParticipant) -> Subscriber {
-        Subscriber {
-            subscriber: unsafe {
-                cyclonedds_sys::dds_create_subscriber(participant.participant, null_mut(), null())
-            },
+    /// Creates a new instance of a DDS subscriber.
+    pub(crate) fn new(participant: &DomainParticipant) -> Result<Subscriber, ReturnCodes> {
+
+        let subscriber = unsafe {
+            cyclonedds_sys::dds_create_subscriber(participant.participant, null_mut(), null())
+        };
+
+        if subscriber < 0 {
+            Err(ReturnCodes::from(subscriber))
+        } else {
+            Ok(Subscriber { subscriber })
         }
     }
 
@@ -35,7 +41,10 @@ impl Subscriber {
         }
     }
 
-    pub fn create_reader<T: TopicType>(&self, topic: &Topic<T>) -> Result<DataReader<T>, ReturnCodes> {
+    pub fn create_reader<T: TopicType>(
+        &self,
+        topic: &Topic<T>,
+    ) -> Result<DataReader<T>, ReturnCodes> {
         unsafe {
             let reader = cyclonedds_sys::dds_create_reader(
                 self.subscriber,
@@ -51,14 +60,15 @@ impl Subscriber {
                     _marker: PhantomData,
                 })
             }
-            
         }
     }
 }
 
-impl From<DomainParticipant> for Subscriber {
-    fn from(mut participant: DomainParticipant) -> Subscriber {
-        participant.subscriber()
+impl TryFrom<DomainParticipant> for Subscriber {
+    type Error = ReturnCodes;
+
+    fn try_from(mut value: DomainParticipant) -> Result<Self, ReturnCodes> {
+        value.subscriber()
     }
 }
 
@@ -73,6 +83,35 @@ impl Drop for Subscriber {
 pub struct DataReader<T: TopicType> {
     reader: cyclonedds_sys::dds_entity_t,
     _marker: PhantomData<T>,
+}
+
+impl<T: TopicType> DataReader<T> {
+    pub(crate) fn new(
+        subscriber: &mut Subscriber,
+        topic: &Topic<T>,
+    ) -> Result<DataReader<T>, ReturnCodes> {
+        let data_reader = unsafe {
+            cyclonedds_sys::dds_create_reader(
+                subscriber.subscriber,
+                topic.topic,
+                null(),
+                std::ptr::null_mut(),
+            )
+        };
+
+        if data_reader < 0 {
+            Err(ReturnCodes::from(data_reader))
+        } else {
+            Ok(DataReader {
+                reader: data_reader,
+                _marker: PhantomData::default(),
+            })
+        }
+    }
+
+    pub fn read(&self) {
+        todo!("not implemented")
+    }
 }
 
 pub struct AnyDataReader {

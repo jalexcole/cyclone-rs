@@ -124,6 +124,7 @@ dependencies = [
 name = "cyclonedds-derive"
 version = "0.1.0"
 dependencies = [
+ "cyclonedds-rs",
  "proc-macro2",
  "quote",
  "syn",

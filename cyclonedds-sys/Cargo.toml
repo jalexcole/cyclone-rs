@@ -2,7 +2,7 @@
 name = "cyclonedds-sys"
 version = "0.1.0"
 edition = "2021"
-
+include = ["../cyclonedds/", "src/", "build.rs", "wrapper.h" ]
 [dependencies]
 
 

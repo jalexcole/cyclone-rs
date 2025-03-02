@@ -1,5 +1,6 @@
-use std::fmt::Debug;
+use std::{ffi::CString, fmt::Debug, ptr::null};
 
+use cyclonedds_sys::dds_topic_descriptor;
 use serde::Serialize;
 
 use crate::{
@@ -28,7 +29,13 @@ pub struct Topic<T: TopicType> {
     _marker: std::marker::PhantomData<T>,
 }
 
-impl<T: TopicType> Topic<T> {}
+impl<T: TopicType> Topic<T> {
+    pub fn new(
+        participant: &DomainParticipant,
+        ) -> Result<Topic<T>, ReturnCodes>{
+            todo!("not implemented")
+        }
+}
 
 impl<T: TopicType> Drop for Topic<T> {
     fn drop(&mut self) {
@@ -47,7 +54,7 @@ impl<T: TopicType> TryFrom<AnyTopic> for Topic<T> {
 }
 
 pub struct AnyTopic {
-    topic: cyclonedds_sys::dds_entity_t,
+    pub(crate) topic: cyclonedds_sys::dds_entity_t,
 }
 
 impl AnyTopic {
@@ -85,6 +92,10 @@ impl AnyTopic {
 
     pub fn write(&self, data: &impl Serialize) -> Result<(), ReturnCodes> {
         todo!()
+    }
+    
+    pub(crate) fn new(arg: &mut DomainParticipant) -> Result<Self, ReturnCodes> {
+       todo!()
     }
 }
 
