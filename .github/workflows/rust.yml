@@ -8,18 +8,19 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-
+  # Pass the flag to bindgen so that __GLIBC_USE gets defined as empty
+  BINDGEN_EXTRA_CLANG_ARGS: "-D__GLIBC_USE(a)="
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest 
 
     steps:
     - uses: actions/checkout@v4
       with:
-        submodules: true 
+        submodules: true
     - name: Install CMake
-      run: sudo apt-get update && sudo apt-get install -y cmake
+      run: sudo apt-get update && sudo apt-get install -y cmake clang
     - name: Build
       run: cargo build --verbose
     - name: Run tests
