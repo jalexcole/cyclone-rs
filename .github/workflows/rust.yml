@@ -10,12 +10,13 @@ env:
   CARGO_TERM_COLOR: always
   # Supply additional clang arguments for bindgen to avoid errors in glibc headers
   BINDGEN_EXTRA_CLANG_ARGS: >
-    -D__GLIBC_USE(x)=
+    -D__GLIBC_USE(x)=0
     -D__GNUC_PREREQ(a,b)=0
     -D__BEGIN_DECLS=
     -D__END_DECLS=
     -D__STDC__=1
     -D__STDC_VERSION__=201112L
+    -Wno-builtin-macro-redefined
 jobs:
   build:
     runs-on: ubuntu-latest
