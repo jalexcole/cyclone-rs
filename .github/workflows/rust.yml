@@ -16,6 +16,8 @@ env:
     -D__END_DECLS=
     -D__STDC__=1
     -D__STDC_VERSION__=201112L
+    -D__extension__=
+    -D__attribute__(x)=
     -Wno-builtin-macro-redefined
 jobs:
   build:
