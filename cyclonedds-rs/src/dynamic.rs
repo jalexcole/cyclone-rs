@@ -53,7 +53,7 @@ pub enum TypeAutoid {
 ///
 /// The ‘ret’ member of this struct holds the return code of operations performed on this type. In case this value is not DDS_RETCODE_OK, the type cannot be used for further processing (e.g. adding members, registering the type, etc.).
 pub struct DynamicType {
-    dynamic_type: *mut dds_dynamic_type_t,
+    dynamic_type: dds_dynamic_type_t,
 }
 
 impl DynamicType {
@@ -61,7 +61,15 @@ impl DynamicType {
         entity: & impl Entity,
         descripter: cyclonedds_sys::dds_dynamic_type_descriptor_t,
     ) -> Result<DynamicType, ReturnCodes> {
-        todo!("not implemented")
+        // todo!("not implemented");
+        let dynamic_type;
+        unsafe {
+            dynamic_type = cyclonedds_sys::dds_dynamic_type_create(
+                entity.participant().unwrap().participant, descripter
+            );
+        }
+        // TODO: check for errors
+        Ok(DynamicType { dynamic_type })
     }
     /// Set the extensibility of a Dynamic Type.
     /// -
