@@ -148,6 +148,16 @@ version = "0.1.0"
 dependencies = [
  "bindgen",
  "cmake",
+ "doxygen-bindgen",
+]
+
+[[package]]
+name = "doxygen-bindgen"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc1a25cf11ca7979e47cb2d4068bd0dc35001138bb55add6ed36961dedd42610"
+dependencies = [
+ "yap",
 ]
 
 [[package]]
@@ -521,3 +531,9 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
+
+[[package]]
+name = "yap"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfe269e7b803a5e8e20cbd97860e136529cd83bf2c9c6d37b142467e7e1f051f"

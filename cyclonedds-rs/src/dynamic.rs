@@ -1,5 +1,7 @@
 //! The Dynamic Type API to construct and manipulate data types.
 
+use std::ffi::CString;
+
 use cyclonedds_sys::{dds_dynamic_type, dds_dynamic_type_t};
 
 use crate::core::{Entity, ReturnCodes};
@@ -59,13 +61,13 @@ pub struct DynamicType {
 impl DynamicType {
     pub(crate) fn create(
         entity: & impl Entity,
-        descripter: cyclonedds_sys::dds_dynamic_type_descriptor_t,
+        descriptor: cyclonedds_sys::dds_dynamic_type_descriptor_t,
     ) -> Result<DynamicType, ReturnCodes> {
         // todo!("not implemented");
         let dynamic_type;
         unsafe {
             dynamic_type = cyclonedds_sys::dds_dynamic_type_create(
-                entity.participant().unwrap().participant, descripter
+                entity.participant().unwrap().participant, descriptor
             );
         }
         // TODO: check for errors
@@ -77,7 +79,22 @@ impl DynamicType {
         &mut self,
         extensibility: &TypeExtensibility,
     ) -> Result<(), ReturnCodes> {
-        todo!("not implemented")
+        let extensibility = match extensibility {
+            TypeExtensibility::Final => cyclonedds_sys::dds_dynamic_type_extensibility_DDS_DYNAMIC_TYPE_EXT_FINAL,
+            TypeExtensibility::Appendable => cyclonedds_sys::dds_dynamic_type_extensibility_DDS_DYNAMIC_TYPE_EXT_APPENDABLE,
+            TypeExtensibility::Mutable => cyclonedds_sys::dds_dynamic_type_extensibility_DDS_DYNAMIC_TYPE_EXT_MUTABLE,
+        };
+
+        let return_code;
+         unsafe {
+            return_code = cyclonedds_sys::dds_dynamic_type_set_extensibility(&mut self.dynamic_type, extensibility);
+        };
+
+        if return_code != 0 {
+            Err(ReturnCodes::from(return_code))
+        } else {
+            Ok(())
+        }
     }
 
     pub fn set_bit_bound(&mut self, bit_bound: u16) -> Result<(), ReturnCodes> {
@@ -146,3 +163,42 @@ struct DynamicTypeSpec;
 struct DynamicTypeDescriptor;
 
 struct DynamicMemberDescriptor;
+
+pub struct MemberDescriptor {
+    name: String,
+    id: u32,
+    dynamic_type: TypeSpec,
+    default_value: String,
+    index: u32,
+    num_labels: u32,
+    labels: Vec<i32>,
+    default_label:bool
+
+}
+
+impl From<MemberDescriptor> for cyclonedds_sys::dds_dynamic_member_descriptor_t {
+    fn from(member_descriptor: MemberDescriptor) -> Self {
+        cyclonedds_sys::dds_dynamic_member_descriptor_t {
+            name: CString::new(member_descriptor.name).unwrap().as_ptr(),
+            id: member_descriptor.id,
+            type_: member_descriptor.dynamic_type.into(),
+            default_value: CString::new(member_descriptor.default_value).unwrap().as_ptr() as *mut i8,
+            index: member_descriptor.index,
+            num_labels: member_descriptor.num_labels,
+            labels: &mut member_descriptor.labels.clone() as *mut Vec<i32> as *mut i32,
+            default_label: member_descriptor.default_label
+        }
+    }
+}
+/// Dynamic Type specification: a reference to dynamic type, which can be a 
+/// primitive type kind (just the type kind enumeration value), or a 
+/// (primitive or non-primitive) dynamic type reference.
+pub struct TypeSpec {
+
+}
+
+impl From<TypeSpec> for cyclonedds_sys::dds_dynamic_type_spec_t {
+    fn from(value: TypeSpec) -> Self {
+        todo!()
+    }
+}

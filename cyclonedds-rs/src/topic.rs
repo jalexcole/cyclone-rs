@@ -4,7 +4,7 @@ use cyclonedds_sys::dds_topic_descriptor;
 use serde::Serialize;
 
 use crate::{
-    core::{Entity, EntityParticipantError, ReturnCodes},
+    core::{Entity, EntityParticipantError, Guid, ReturnCodes},
     domain::DomainParticipant,
     internal::InstanceHandle,
     InconsistentTopicStatus,
@@ -30,11 +30,9 @@ pub struct Topic<T: TopicType> {
 }
 
 impl<T: TopicType> Topic<T> {
-    pub fn new(
-        participant: &DomainParticipant,
-        ) -> Result<Topic<T>, ReturnCodes>{
-            todo!("not implemented")
-        }
+    pub fn new(participant: &DomainParticipant) -> Result<Topic<T>, ReturnCodes> {
+        todo!("not implemented")
+    }
 }
 
 impl<T: TopicType> Drop for Topic<T> {
@@ -93,9 +91,9 @@ impl AnyTopic {
     pub fn write(&self, data: &impl Serialize) -> Result<(), ReturnCodes> {
         todo!()
     }
-    
+
     pub(crate) fn new(arg: &mut DomainParticipant) -> Result<Self, ReturnCodes> {
-       todo!()
+        todo!()
     }
 }
 
@@ -143,7 +141,16 @@ impl Entity for AnyTopic {
     }
 
     fn triggered(&self) -> Result<(), ReturnCodes> {
-        todo!()
+        let return_code;
+        unsafe {
+            return_code = cyclonedds_sys::dds_triggered(self.topic);
+        }
+
+        if return_code != 0 {
+            Err(ReturnCodes::from(return_code))
+        } else {
+            Ok(())
+        }
     }
 
     fn get_topic(&self) -> Result<impl Entity, ReturnCodes> {
@@ -243,3 +250,34 @@ pub trait TopicType: Clone + Debug + PartialEq {
         }
     }
 }
+
+pub struct TopicGuid {
+    guid: cyclonedds_sys::dds_guid_t,
+}
+
+impl Guid for TopicGuid {
+    fn guid(&self) -> [u8; 16] {
+        self.guid.v
+    }
+}
+
+/// Simple sized byte container to hold serialized type info Holds XTypes 
+/// information (TypeInformation, TypeMapping) for a type.
+pub struct MetaSer {
+    data: String,
+}
+/// Type identifier kind for getting endpoint type identifier.
+pub enum TypeidKind {
+    /// XTypes Minimal Type ID
+    Minimal,
+    /// XTypes Complete Type ID
+    Complete
+}
+
+pub struct BuiltinTopic {}
+
+pub struct BuiltinTopicEndpoint {}
+
+pub struct BuiltinTopicGuid {}
+
+

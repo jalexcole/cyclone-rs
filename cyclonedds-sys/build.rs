@@ -37,6 +37,7 @@ fn main() {
         // Automatically invalidate the build when any header changes.
         // Skip generating bindings for the problematic union:
         //.blocklist_item("ddsrt_log_cfg_union_.*")
+        .parse_callbacks(Box::new(ProcessComments))
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()
         .expect("Unable to generate bindings");
@@ -53,4 +54,21 @@ fn main() {
     println!("cargo:rustc-link-lib=dds_security_crypto");
     println!("cargo:rustc-link-lib=ddsc");
 
+}
+
+use bindgen::callbacks::ParseCallbacks;
+
+#[derive(Debug)]
+struct ProcessComments;
+
+impl ParseCallbacks for ProcessComments {
+    fn process_comment(&self, comment: &str) -> Option<String> {
+        match doxygen_bindgen::transform(comment) {
+            Ok(res) => Some(res),
+            Err(err) => {
+                println!("cargo:warning=Problem processing doxygen comment: {comment}\n{err}");
+                None
+            }
+        }
+    }
 }

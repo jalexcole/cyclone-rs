@@ -2,7 +2,7 @@ use std::{
     any::Any,
     marker::PhantomData,
     os::raw::c_void,
-    ptr,
+    ptr::{self, null_mut},
     time::{Duration, Instant},
 };
 
@@ -218,6 +218,14 @@ impl<T: TopicType> DataWriter<T> {
         match unsafe { cyclonedds_sys::dds_wait_for_acks(self.writer, timeout.as_nanos() as i64) } {
             0 => Ok(()),
             result => Err(ReturnCodes::from(result)),
+        }
+    }
+
+    pub fn dds_get_matched_subscriptions(&self) {
+        let return_code;
+        let mut rds = null_mut();
+        unsafe {
+            return_code = cyclonedds_sys::dds_get_matched_subscriptions(self.writer, rds, 0);
         }
     }
 }

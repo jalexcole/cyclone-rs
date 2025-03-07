@@ -9,3 +9,4 @@ include = ["../cyclonedds/", "src/", "build.rs", "wrapper.h" ]
 [build-dependencies]
 bindgen = "0.65.0"
 cmake = "0.1.48"
+doxygen-bindgen = "0.1.2"

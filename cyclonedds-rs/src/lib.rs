@@ -11,6 +11,7 @@ pub mod publisher;
 pub mod statistics;
 pub mod subscriber;
 pub mod topic;
+pub mod xtypes;
 
 pub mod prelude {
     use crate::domain::DomainParticipant;

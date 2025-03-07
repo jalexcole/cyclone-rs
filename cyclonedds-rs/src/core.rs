@@ -151,6 +151,11 @@ pub trait Entity: Drop {
     fn assert_liveliness(&self) -> Result<(), ReturnCodes>;
 }
 
+
+pub(crate) trait FetchableEntity {
+    fn fetch(&self) -> cyclonedds_sys::dds_entity_t;
+}
+
 #[derive(Error, Debug)]
 pub enum ParentError {
     #[error("Called with a participant")]
@@ -618,3 +623,9 @@ pub mod qos {
 }
 
 pub trait Listener {}
+
+pub trait Guid {
+
+    fn guid(&self) -> [u8; 16];
+
+}
