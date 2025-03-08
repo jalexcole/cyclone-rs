@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "macFrameworkPath": [
+                "/System/Library/Frameworks",
+                "/Library/Frameworks"
+            ],
+            "intelliSenseMode": "macos-clang-x64",
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "includePath": [
+                "${default}",
+                "${workspaceFolder}/cyclonedds/src/core/ddsc/include",
+                "${workspaceFolder}/build/src/core/include"
+            ]
+        }
+    ],
+    "version": 4
+}

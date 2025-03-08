@@ -7,6 +7,7 @@ use std::{
 };
 
 use cyclonedds_sys::dds_delete;
+use serde::Serialize;
 
 use crate::{
     core::ReturnCodes, domain::DomainParticipant, internal::InstanceHandle, topic::TopicType,
@@ -152,16 +153,9 @@ impl<T: TopicType> DataWriter<T> {
     where
         T: serde::Serialize,
     {
-        // Serialize the data to a byte vector.
-        let serialized = bincode::serialize(data).map_err(|e| ReturnCodes::Unsupported)?;
+        let encoded_data = cdr_encoding::to_vec::<T, byteorder::NativeEndian>(data).unwrap();
 
-        // Write the serialized data to DDS.
-        // Note: Ensure that `dds_write` expects the serialized layout.
-        match unsafe { cyclonedds_sys::dds_write(self.writer, serialized.as_ptr() as *mut c_void) }
-        {
-            0 => Ok(()),
-            result => Err(ReturnCodes::from(result)),
-        }
+        self.write_cdr(&encoded_data)
     }
     /// Flush a writers batched writes
     ///
@@ -202,9 +196,14 @@ impl<T: TopicType> DataWriter<T> {
         todo!("not implemented")
     }
 
-    /// Write the value of a data instance along with the source timestamp passed.
-    pub fn write_ts(&self, data: &T, timestamp: &Instant) -> Result<(), ReturnCodes> {
+    /// Write the value of a data instance along with the source timestamp
+    /// passed.
+    pub fn write_ts(&self, data: &T, timestamp: &Instant) -> Result<(), ReturnCodes>
+    where
+        T: Serialize,
+    {
         todo!("not implemented")
+        
     }
 
     /// Waits at most for the duration timeout for acks for data in the

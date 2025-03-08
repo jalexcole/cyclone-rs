@@ -81,7 +81,6 @@ impl Statistics {
     }
 
     pub fn kv(&self) -> Vec<KeyValue> {
-        
         let keys = unsafe { self.statistics.as_ref().unwrap().kv.as_slice(self.count()) };
 
         keys.iter().map(|k| (*k).into()).collect()

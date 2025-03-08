@@ -91,6 +91,8 @@ impl From<i32> for ReturnCodes {
     }
 }
 
+pub enum XReturnCode {}
+
 pub trait Entity: Drop {
     /// Returns the instance handle that represents the entity.
     fn instance_handle(&self) -> Result<InstanceHandle, ReturnCodes>;
@@ -151,7 +153,6 @@ pub trait Entity: Drop {
     fn assert_liveliness(&self) -> Result<(), ReturnCodes>;
 }
 
-
 pub(crate) trait FetchableEntity {
     fn fetch(&self) -> cyclonedds_sys::dds_entity_t;
 }
@@ -182,6 +183,8 @@ pub mod qos {
         ffi::{c_int, c_void, CString},
         time::Duration,
     };
+
+    use super::ReturnCodes;
 
     pub struct Qos {
         pub(crate) qos: *mut cyclonedds_sys::dds_qos_t,
@@ -461,18 +464,18 @@ pub mod qos {
             }
         }
         /// Set the durability service policy of a qos structure
-        /// 
-        /// * `service_cleanup_delay` - Service cleanup delay for purging of 
+        ///
+        /// * `service_cleanup_delay` - Service cleanup delay for purging of
         ///     abandoned instances from the durability service
-        /// * `history_kind` - History policy kind applied by the durability 
+        /// * `history_kind` - History policy kind applied by the durability
         ///     service.
-        /// * `history_depth` - History policy depth applied by the durability 
+        /// * `history_depth` - History policy depth applied by the durability
         ///     service.
-        /// * `max_samples` - Number of samples resource-limit policy applied 
+        /// * `max_samples` - Number of samples resource-limit policy applied
         ///     by the durability service.
-        /// * `max_instances` - Number of instances resource-limit policy 
+        /// * `max_instances` - Number of instances resource-limit policy
         ///     applied by the durability service.
-        /// * `max_samples_per_read` - Number of samples per instance 
+        /// * `max_samples_per_read` - Number of samples per instance
         ///     resource-limit policy applied by the durability service
         pub fn set_durability_service(
             &mut self,
@@ -497,21 +500,21 @@ pub mod qos {
         }
 
         /// Set the ignore local policy of a qos structure.
-        /// 
+        ///
         /// * `ignore` - Ignore local policy
         pub fn set_ignorelocal(&mut self, ignore: cyclonedds_sys::dds_ignorelocal_kind) {
             unsafe {
                 cyclonedds_sys::dds_qset_ignorelocal(self.qos, ignore);
             }
         }
-        /// Stores a property with the provided name and string value in a qos 
+        /// Stores a property with the provided name and string value in a qos
         /// structure.
         ///
-        /// In the case a property with the provided name already exists in the 
-        /// qos structure, the value for this entry is overwritten with the 
-        /// provided string value. If more than one property with the provided 
+        /// In the case a property with the provided name already exists in the
+        /// qos structure, the value for this entry is overwritten with the
+        /// provided string value. If more than one property with the provided
         /// name exists, only the value of the first of these properties is updated.
-        /// 
+        ///
         /// * `name` - Pointer to name of the property
         /// * `value` - Pointer to string value to be stored in the property
         pub fn set_prop(&mut self, name: &str, value: &str) {
@@ -582,7 +585,8 @@ pub mod qos {
             unsafe {
                 let c_strings: Vec<CString> =
                     values.iter().map(|&s| CString::new(s).unwrap()).collect();
-                let c_ptrs: Vec<*const i8> = c_strings.iter().map(|s: &CString| s.as_ptr()).collect();
+                let c_ptrs: Vec<*const i8> =
+                    c_strings.iter().map(|s: &CString| s.as_ptr()).collect();
                 cyclonedds_sys::dds_qset_psmx_instances(
                     self.qos,
                     instances as u32,
@@ -590,8 +594,22 @@ pub mod qos {
                 );
             }
         }
-
+        /// Get the userdata from a qos structure.
+        ///
         pub fn get_userdata(&mut self) -> Result<Vec<c_void>, &'static str> {
+            let mut size = 0;
+
+            let mut value = std::ptr::null_mut();
+
+            let status = unsafe { cyclonedds_sys::dds_qget_userdata(self.qos, value, &mut size) };
+
+            match status {
+                true => Ok(vec![]),
+                _ => Err("Failed to get userdata"),
+            }
+        }
+
+        pub fn topicdata(&self) -> Result<String, ReturnCodes> {
             todo!()
         }
     }
@@ -625,7 +643,5 @@ pub mod qos {
 pub trait Listener {}
 
 pub trait Guid {
-
     fn guid(&self) -> [u8; 16];
-
 }

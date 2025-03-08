@@ -3,5 +3,8 @@
     "cSpell.words": [
         "acks",
         "cyclonedds"
+    ],
+    "cmake.configureArgs": [
+        "-DBUILD_EXAMPLES=ON"
     ]
 }

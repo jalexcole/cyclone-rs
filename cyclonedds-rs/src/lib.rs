@@ -12,7 +12,7 @@ pub mod statistics;
 pub mod subscriber;
 pub mod topic;
 pub mod xtypes;
-
+pub mod util;
 pub mod prelude {
     use crate::domain::DomainParticipant;
     use crate::publisher::DataWriter;
@@ -23,6 +23,9 @@ pub mod prelude {
 
     pub use crate::core::ReturnCodes;
 }
+
+
+
 
 pub struct LivelinessLostStatus {
     status: dds_liveliness_lost_status_t,

@@ -15,7 +15,6 @@ fn main() {
     writer.write(&msg).unwrap();
 
     drop(participant)
-   
 }
 
 pub mod HelloWorldData {
@@ -37,6 +36,5 @@ pub mod HelloWorldData {
         pub message: String,
     }
 
-    impl TopicType for Msg {
-    }
+    // impl TopicType for Msg {}
 }

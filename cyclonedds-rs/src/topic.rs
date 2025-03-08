@@ -1,12 +1,11 @@
 use std::{ffi::CString, fmt::Debug, ptr::null};
 
-use cyclonedds_sys::dds_topic_descriptor;
 use serde::Serialize;
 
 use crate::{
-    core::{Entity, EntityParticipantError, Guid, ReturnCodes},
+    core::{qos::Qos, Entity, EntityParticipantError, Guid, ReturnCodes},
     domain::DomainParticipant,
-    internal::InstanceHandle,
+    internal::{InstanceHandle, TopicDescriptor},
     InconsistentTopicStatus,
 };
 
@@ -31,7 +30,24 @@ pub struct Topic<T: TopicType> {
 
 impl<T: TopicType> Topic<T> {
     pub fn new(participant: &DomainParticipant) -> Result<Topic<T>, ReturnCodes> {
-        todo!("not implemented")
+        let topic: cyclonedds_sys::dds_entity_t = unsafe {
+            cyclonedds_sys::dds_create_topic(
+                participant.participant,
+                &cyclonedds_sys::dds_topic_descriptor::from(T::topic_descriptor().clone()),
+                CString::new(T::name()).unwrap().as_ptr(),
+                null(),
+                null(),
+            )
+        };
+
+        if topic < 0 {
+            Err(ReturnCodes::from(topic))
+        } else {
+            Ok(Topic {
+                topic,
+                _marker: std::marker::PhantomData,
+            })
+        }
     }
 }
 
@@ -229,8 +245,6 @@ pub struct PublicationBuiltinTopicData {}
 
 pub struct SubscriptionBuiltinTopicData {}
 
-pub struct TopicDescription {}
-
 /// Trait for Topic types
 /// All messages must be of [TopicType] to be used by a data reader or writer.
 pub trait TopicType: Clone + Debug + PartialEq {
@@ -249,6 +263,8 @@ pub trait TopicType: Clone + Debug + PartialEq {
             full
         }
     }
+
+    fn topic_descriptor() -> TopicDescriptor;
 }
 
 pub struct TopicGuid {
@@ -261,7 +277,7 @@ impl Guid for TopicGuid {
     }
 }
 
-/// Simple sized byte container to hold serialized type info Holds XTypes 
+/// Simple sized byte container to hold serialized type info Holds XTypes
 /// information (TypeInformation, TypeMapping) for a type.
 pub struct MetaSer {
     data: String,
@@ -271,13 +287,29 @@ pub enum TypeidKind {
     /// XTypes Minimal Type ID
     Minimal,
     /// XTypes Complete Type ID
-    Complete
+    Complete,
 }
 
-pub struct BuiltinTopic {}
+pub struct BuiltinTopic {
+    key: BuiltinTopicKey,
+    topic_name: String,
+    type_name: String,
+    qos: Qos,
+}
 
-pub struct BuiltinTopicEndpoint {}
+pub struct BuiltinTopicEndpoint {
+    key: cyclonedds_sys::dds_guid_t,
+    participant_key: cyclonedds_sys::dds_guid_t,
+    participant_instance_handle: InstanceHandle,
+    topic_name: String,
+    type_name: String,
+    qos: Qos,
+}
 
-pub struct BuiltinTopicGuid {}
+pub struct BuiltinTopicGuid {
+    v: [u8; 16],
+}
 
-
+pub struct BuiltinTopicKey {
+    d: [char; 16],
+}

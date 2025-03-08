@@ -1,6 +1,6 @@
 //! # Publish Subscribe Message Exchange
 //! ## Overview
-//! 
+//!
 //! The Publish Subscribe Message Exchange (PSMX) interface provides support for off-loading data communication from the network stack of Cyclone to arbitrary pub-sub transport implementations.[^1] This section provides an overview of the structure and introduces some terminology, details on specific operations are provided at the definitions of those operations.
 //!
 //! A Cyclone DDS Domain consists of a plurality of DDS Domain Entities, which are the representations of the DDS Domain in a specific process.
@@ -39,7 +39,7 @@
 //! };
 //! ```
 //! The creator function mentioned above is required to be called NAME_create_psmx, where NAME is the value of the “name” attribute of the PubSubMessageExchange interface configuration element. It must have the following signature:
-//!```c 
+//!```c
 //! dds_return_t NAME_create_psmx (
 //!   struct dds_psmx **psmx_instance,
 //!   dds_psmx_instance_id_t identifier,
@@ -83,3 +83,4 @@
 //! [^4]: This typically matches a machine when the transport is shared memory.
 //!
 //! [^5]: That is, the matching rules between Readers and Writers defined in the DDS specification.
+//!

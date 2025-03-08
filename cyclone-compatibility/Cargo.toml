@@ -1,0 +1,13 @@
+[package]
+name = "cyclone-compatibility"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+
+
+[dev-dependencies]
+cyclonedds-rs = { path = "../cyclonedds-rs" }
+dust_dds = "0.12.0"
+rustdds = "0.11.3"
