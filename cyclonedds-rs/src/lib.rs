@@ -8,6 +8,7 @@ pub mod domain;
 pub mod dynamic;
 pub mod psmx;
 pub mod publisher;
+pub mod qos;
 pub mod statistics;
 pub mod subscriber;
 pub mod topic;

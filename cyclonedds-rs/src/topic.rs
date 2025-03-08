@@ -3,10 +3,10 @@ use std::{ffi::CString, fmt::Debug, ptr::null};
 use serde::Serialize;
 
 use crate::{
-    core::{qos::Qos, Entity, EntityParticipantError, Guid, ReturnCodes},
+    core::{Entity, EntityParticipantError, Guid, ReturnCodes},
     domain::DomainParticipant,
     internal::{InstanceHandle, TopicDescriptor},
-    InconsistentTopicStatus,
+    InconsistentTopicStatus, qos::Qos,
 };
 
 pub enum FindScope {

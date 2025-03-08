@@ -4,7 +4,7 @@ fn main() {
     let mut participant: DomainParticipant = DomainParticipant::new(0).unwrap();
     let mut publisher = participant.publisher().unwrap();
     println!("=== [Publisher]  Waiting for a reader to be discovered ...\n");
-    let mut writer = publisher.create_datawriter().unwrap();
+    // let mut writer = publisher.create_datawriter().unwrap();
     let mut msg = HelloWorldData::Msg {
         userID: 1,
         message: "Hello World".to_string(),
@@ -12,7 +12,7 @@ fn main() {
 
     println!("=== [Publisher]  Writing : ");
 
-    writer.write(&msg).unwrap();
+    // writer.write(&msg).unwrap();
 
     drop(participant)
 }

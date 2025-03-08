@@ -6,6 +6,7 @@ fn main() {
         .very_verbose(true)
         // .build_arg("-DENABLE_TYPE_DISCOVERY=YES")
         // .build_arg("-DENABLE_TOPIC_DISCOVERY=YES")
+        .define("CMAKE_POLICY_DEFAULT_CMP0126", "NEW") // ✅ Fix CMP0126 issue
         .build();
 
     println!("cargo:rustc-link-search=native={}/lib", dst.display());

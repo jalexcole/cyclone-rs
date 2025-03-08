@@ -8,8 +8,9 @@ use std::{ffi::c_uint, fs::File};
 use thiserror::Error;
 
 use crate::core::FetchableEntity;
+use crate::qos::Qos;
 use crate::{
-    core::{qos::Qos, Entity, EntityParticipantError, ReturnCodes},
+    core::{Entity, EntityParticipantError, ReturnCodes},
     internal::InstanceHandle,
     publisher::Publisher,
     subscriber::Subscriber,
