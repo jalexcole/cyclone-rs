@@ -1,9 +1,10 @@
 // safe.rs
 use core::panic;
-use std::num::NonZeroU32;
+use core::num::NonZeroU32;
 
 use std::ptr;
-use std::{ffi::c_uint, fs::File};
+use core::ffi::c_uint;
+use std::fs::File;
 
 use thiserror::Error;
 

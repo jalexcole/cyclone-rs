@@ -82,13 +82,13 @@ impl DynamicType {
     ) -> Result<(), ReturnCodes> {
         let extensibility = match extensibility {
             TypeExtensibility::Final => {
-                cyclonedds_sys::dds_dynamic_type_extensibility_DDS_DYNAMIC_TYPE_EXT_FINAL
+                cyclonedds_sys::dds_dynamic_type_extensibility::DDS_DYNAMIC_TYPE_EXT_FINAL
             }
             TypeExtensibility::Appendable => {
-                cyclonedds_sys::dds_dynamic_type_extensibility_DDS_DYNAMIC_TYPE_EXT_APPENDABLE
+                cyclonedds_sys::dds_dynamic_type_extensibility::DDS_DYNAMIC_TYPE_EXT_APPENDABLE
             }
             TypeExtensibility::Mutable => {
-                cyclonedds_sys::dds_dynamic_type_extensibility_DDS_DYNAMIC_TYPE_EXT_MUTABLE
+                cyclonedds_sys::dds_dynamic_type_extensibility::DDS_DYNAMIC_TYPE_EXT_MUTABLE
             }
         };
 

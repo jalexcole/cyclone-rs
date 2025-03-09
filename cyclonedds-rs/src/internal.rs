@@ -28,21 +28,37 @@ pub enum EntityKind {
 
 impl EntityKind {
     pub(crate) fn from_c(entity_kind: cyclonedds_sys::dds_entity_kind) -> EntityKind {
+        // match entity_kind {
+        //     0 => EntityKind::DontCare,
+        //     1 => EntityKind::Topic,
+        //     2 => EntityKind::Particpant,
+        //     3 => EntityKind::Reader,
+        //     4 => EntityKind::Writer,
+        //     5 => EntityKind::Subscriber,
+        //     6 => EntityKind::Publisher,
+        //     7 => EntityKind::CondRead,
+        //     8 => EntityKind::CondQuarry,
+        //     9 => EntityKind::CondGuard,
+        //     10 => EntityKind::Waitset,
+        //     11 => EntityKind::Domain,
+        //     12 => EntityKind::CycloneDds,
+        //     _ => panic!("Unknown entity kind"),
+        // }
+
         match entity_kind {
-            0 => EntityKind::DontCare,
-            1 => EntityKind::Topic,
-            2 => EntityKind::Particpant,
-            3 => EntityKind::Reader,
-            4 => EntityKind::Writer,
-            5 => EntityKind::Subscriber,
-            6 => EntityKind::Publisher,
-            7 => EntityKind::CondRead,
-            8 => EntityKind::CondQuarry,
-            9 => EntityKind::CondGuard,
-            10 => EntityKind::Waitset,
-            11 => EntityKind::Domain,
-            12 => EntityKind::CycloneDds,
-            _ => panic!("Unknown entity kind"),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_DONTCARE => todo!(),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_TOPIC => todo!(),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_PARTICIPANT => todo!(),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_READER => todo!(),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_WRITER => todo!(),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_SUBSCRIBER => todo!(),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_PUBLISHER => todo!(),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_COND_READ => todo!(),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_COND_QUERY => todo!(),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_COND_GUARD => todo!(),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_WAITSET => todo!(),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_DOMAIN => todo!(),
+            cyclonedds_sys::dds_entity_kind::DDS_KIND_CYCLONEDDS => todo!(),
         }
     }
 }

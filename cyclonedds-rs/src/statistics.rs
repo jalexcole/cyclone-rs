@@ -112,11 +112,10 @@ impl From<cyclonedds_sys::dds_stat_keyvalue> for KeyValue {
         let name = unsafe { CString::from_raw(value.name as *mut c_char) };
 
         let stat_kind = match value.kind {
-            0 => StatKind::UInt32(unsafe { value.u.u32_ }),
-            1 => StatKind::UInt64(unsafe { value.u.u64_ }),
-            2 => StatKind::LengthTime(unsafe { value.u.lengthtime }),
-            _ => panic!("Unknown stat kind {}", value.kind),
-        };
+            cyclonedds_sys::dds_stat_kind::DDS_STAT_KIND_UINT32 => todo!(),
+            cyclonedds_sys::dds_stat_kind::DDS_STAT_KIND_UINT64 => todo!(),
+            cyclonedds_sys::dds_stat_kind::DDS_STAT_KIND_LENGTHTIME => todo!(),
+                    };
 
         KeyValue {
             name: name.to_str().unwrap().to_string(),

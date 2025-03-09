@@ -21,7 +21,6 @@ fn main() {
     println!("cargo:rerun-if-changed=wrapper.h");
 
     generate_ddsc_bindings(&cyclone_include);
-
     
     generate_dds_internal_bindings(&cyclone_include);
 
@@ -57,6 +56,10 @@ fn generate_dds_idl_gen_bindings(cyclone_include: PathBuf) {
         .clang_arg(format!("-I{}/idl", cyclone_include.display()))
         .clang_arg(format!("-I{}/idlc", cyclone_include.display()))
         .clang_arg(format!("-I{}/libidlc", cyclone_include.display()))
+        .use_core()
+        .vtable_generation(true)
+        .rustified_enum(".*")
+        // .generate_block(true)
         // Automatically invalidate the build when any header changes.
         // Skip generating bindings for the problematic union:
         .parse_callbacks(Box::new(ProcessComments))
@@ -92,6 +95,7 @@ fn generate_dds_internal_bindings(cyclone_include: &PathBuf) {
         .clang_arg(format!("-I{}/idl", cyclone_include.display()))
         .clang_arg(format!("-I{}/idlc", cyclone_include.display()))
         .clang_arg(format!("-I{}/libidlc", cyclone_include.display()))
+        .rustified_enum(".*")
         // Automatically invalidate the build when any header changes.
         // Skip generating bindings for the problematic union:
         .parse_callbacks(Box::new(ProcessComments))
@@ -127,6 +131,7 @@ fn generate_ddsc_bindings(cyclone_include: &PathBuf) {
         .clang_arg(format!("-I{}/idl", cyclone_include.display()))
         .clang_arg(format!("-I{}/idlc", cyclone_include.display()))
         .clang_arg(format!("-I{}/libidlc", cyclone_include.display()))
+        .rustified_enum(".*")
         // Automatically invalidate the build when any header changes.
         // Skip generating bindings for the problematic union:
         .parse_callbacks(Box::new(ProcessComments))
