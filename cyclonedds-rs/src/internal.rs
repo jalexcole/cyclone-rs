@@ -1,7 +1,8 @@
 use core::slice;
 use std::{
     ffi::{CStr, CString},
-    mem, ptr,
+    mem::{self, offset_of},
+    ptr,
 };
 
 use crate::topic::{MetaSer, TopicType};
@@ -69,30 +70,30 @@ pub struct TopicDescriptor {
     /// Alignment of topic type
     pub(crate) m_align: u32,
     /// Flags
-    pub(crate)m_flagset: u32,
+    pub(crate) m_flagset: u32,
     /// Number of keys (can be 0)
-    pub(crate)m_nkeys: u32,
+    pub(crate) m_nkeys: u32,
     /// Type name
-    pub(crate)m_typename: String,
+    pub(crate) m_typename: String,
     /// Key descriptors (NULL iff m_nkeys 0)
-    pub(crate)m_keys: Vec<KeyDescriptor>,
+    pub(crate) m_keys: Vec<KeyDescriptor>,
     /// Number of operations in m_ops
-    pub(crate)m_nops: u32,
+    pub(crate) m_nops: u32,
     /// Marshalling meta data
-    pub(crate)m_ops: Vec<u32>,
+    pub(crate) m_ops: Vec<u32>,
     /// XML topic description meta data
-    pub(crate)m_meta: String,
+    pub(crate) m_meta: String,
     /// XCDR2 serialized TypeInformation, only present if flag
     /// [cyclonedds_sys::DDS_TOPIC_XTYPES_METADATA] is set
     pub(crate) type_information: Vec<u32>,
     /// XCDR2 serialized TypeMapping: maps type-id to type object and minimal
     /// to complete type id, only present if flag
     /// [cyclonedds_sys::DDS_TOPIC_XTYPES_METADATA] is set
-    pub(crate)type_mapping: TypeMetaSer,
+    pub(crate) type_mapping: TypeMetaSer,
     /// restrictions on the data representations allowed for the top-level type
     /// for this topic, only present if flag
     /// [cyclonedds_sys::DDS_TOPIC_RESTRICT_DATA_REPRESENTATION]
-    pub(crate)restrict_data_representation: u32,
+    pub(crate) restrict_data_representation: u32,
 }
 
 impl From<cyclonedds_sys::dds_topic_descriptor_t> for TopicDescriptor {
@@ -126,7 +127,7 @@ impl From<cyclonedds_sys::dds_topic_descriptor_t> for TopicDescriptor {
                     .unwrap()
                     .to_string()
             },
-            type_information: todo!("topic_descriptor.type_information"),
+            type_information: todo!("topic_descriptor.type_information has not been implemented yet"),
             type_mapping: topic_descriptor.type_mapping.into(),
             restrict_data_representation: topic_descriptor.restrict_data_representation,
         }
@@ -140,12 +141,24 @@ impl From<TopicDescriptor> for cyclonedds_sys::dds_topic_descriptor_t {
             m_align: topic_descriptor.m_align,
             m_flagset: topic_descriptor.m_flagset,
             m_nkeys: topic_descriptor.m_nkeys,
-            m_typename: todo!("topic_descriptor.m_typename"),
-            m_keys: todo!("topic_descriptor.m_keys"),
+            m_typename: CString::new(topic_descriptor.m_typename)
+                .expect("Unable to convert typename to c string")
+                .as_c_str()
+                .as_ptr(),
+            m_keys: topic_descriptor
+                .m_keys
+                .iter()
+                .map(|k| k.clone().into())
+                .collect::<Vec<cyclonedds_sys::dds_key_descriptor_t>>()
+                .as_slice()
+                .as_ptr(),
             m_nops: topic_descriptor.m_nops,
-            m_ops: todo!(),
-            m_meta: todo!("topic_descriptor.m_meta"),
-            type_information: todo!("topic_descriptor.type_information"),
+            m_ops: topic_descriptor.m_ops.as_slice().as_ptr(),
+            m_meta: CString::new(topic_descriptor.m_meta)
+                .expect("Unable to convert typename to c string")
+                .as_c_str()
+                .as_ptr(),
+            type_information: cyclonedds_sys::dds_type_meta_ser { data: topic_descriptor.type_information.as_ptr() as *const u8, sz: topic_descriptor.type_information.len() as u32 },
             type_mapping: topic_descriptor.type_mapping.into(),
             restrict_data_representation: topic_descriptor.restrict_data_representation,
         }

@@ -1,10 +1,10 @@
 // safe.rs
-use core::panic;
 use core::num::NonZeroU32;
+use core::panic;
 
-use std::ptr;
 use core::ffi::c_uint;
 use std::fs::File;
+use std::ptr;
 
 use thiserror::Error;
 
@@ -292,7 +292,7 @@ impl TryFrom<File> for DomainParticipantConfigParams {
 
 #[cfg(test)]
 mod test {
-    use std::time::Duration;
+    use std::{mem::offset_of, time::Duration};
 
     use serde::Serialize;
 
@@ -305,7 +305,7 @@ mod test {
 
     #[derive(Default, Clone, Serialize, PartialEq, Debug)]
     struct HelloWorldData {
-        id: i32,
+        userID: i32,
         data: String,
     }
 
@@ -330,7 +330,7 @@ mod test {
                 m_align: 0,
                 m_flagset: 1 << 6,
                 m_nkeys: 1,
-                m_typename: Self::type_name().to_string(),
+                m_typename: String::from("HelloWorldData_Msg"),
                 m_keys: vec![KeyDescriptor {
                     name: "userID".to_string(),
                     m_offset: 5,
@@ -339,7 +339,20 @@ mod test {
                 m_nops: 3,
                 m_ops: vec![],
                 m_meta: "".to_string(),
-                type_information: vec![16777216 | 1 << 0 | 1 << 3 | 196608 | 1 << 2],
+                type_information: vec![
+                    cyclonedds_sys::dds_stream_opcode::DDS_OP_ADR as u32
+                        | cyclonedds_sys::DDS_OP_FLAG_KEY
+                        | cyclonedds_sys::DDS_OP_FLAG_MU
+                        | cyclonedds_sys::dds_stream_typecode_primary::DDS_OP_TYPE_4BY as u32
+                        | cyclonedds_sys::DDS_OP_FLAG_SGN,
+                    offset_of!(HelloWorldData, userID) as u32,
+                    cyclonedds_sys::dds_stream_opcode::DDS_OP_ADR as u32
+                        | cyclonedds_sys::idl::dds_stream_typecode_primary::DDS_OP_TYPE_STR as u32,
+                    // Note: In the C file the second op uses the offset of `message`,
+                    // and then a terminal op DDS_OP_RTS is appended.
+                    offset_of!(HelloWorldData, data) as u32,
+                    cyclonedds_sys::dds_stream_opcode::DDS_OP_RTS as u32,
+                ],
                 type_mapping: TypeMetaSer {
                     data: vec![
                         0x4c, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0xf1, 0x51, 0x01, 0x00,
@@ -372,7 +385,7 @@ mod test {
 
     #[test]
     fn test_participant() {
-        let participant = super::DomainParticipant::new(0).unwrap();
+        let participant = super::DomainParticipant::new(0).expect("Unable to create participant");
         drop(participant);
     }
     #[test]
@@ -393,11 +406,14 @@ mod test {
 
     #[test]
     fn test_participant_topic() {
+        println!("Creating Participant");
         let mut participant = DomainParticipant::default();
-
+        println!("Created Participant");
         let topic = participant
             .topic::<HelloWorldData>()
             .expect("Unable to create topic");
+        drop(topic);
+        drop(participant);
     }
 
     #[test]

@@ -1,3 +1,5 @@
+use std::ffi::{c_char, c_int};
+
 use cyclonedds_sys::*;
 use publisher::PublicationMatchedStatus;
 
@@ -73,61 +75,22 @@ pub struct InconsistentTopicStatus {
 
 trait Liveliness {}
 
-/// Durability QoS: Applies to Topic, DataReader, DataWriter.
-pub enum DurabilityKind {
-    /// Volatile durability
-    Volatile,
-    /// Transient Local durability
-    TransientLocal,
-    /// Transient durability
-    Transient,
-    /// Persistent durability
-    Persistent,
-}
 
-/// History QoS: Applies to Topic, DataReader, DataWriter.
-pub enum HistoryKind {
-    /// Keep Last history
-    KeepLast,
-    /// Keep All history
-    KeepAll,
-}
-
-/// Ownership QoS: Applies to Topic, DataReader, DataWriter.
-pub enum OwnershipKind {
-    /// Shared Ownership
-    Shared,
-    /// Exclusive Ownership
-    Exclusive,
-}
-/// Liveliness QoS: Applies to Topic, DataReader, DataWriter.
-pub enum LivelinessKind {
-    Automatic,
-    ManualByParticipant,
-    ManualByTopic,
-}
-/// Reliability QoS: Applies to Topic, DataReader, DataWriter.
-pub enum ReliabilityKind {
-    BestEffort,
-    Reliable,
-}
-/// DestinationOrder QoS: Applies to Topic, DataReader, DataWriter.
-pub enum DestinationOrderKind {
-    ByReceptionTimestamp,
-    BySourceTimestamp,
-}
 /// Presentation QoS: Applies to Publisher, Subscriber.
+#[derive(Debug,Clone, Copy, PartialEq)]
 pub enum PresentationAccessScopeKind {
     Instance,
     Topic,
 }
 /// Ignore-local QoS: Applies to DataReader, DataWriter.
+#[derive(Debug,Clone, Copy, PartialEq)]
 pub enum IgnorelocalKind {
     None,
     Participant,
     Process,
 }
 /// Type-consistency QoS: Applies to DataReader, DataWriter.
+#[derive(Debug,Clone, Copy, PartialEq)]
 pub enum ConsistencyKind {
     DisallowTypeCoercion,
     AllowTypeCoercion,
@@ -145,4 +108,9 @@ pub enum Statuses {
     LivelinessChangedStatus,
     SubscriptionMatchedStatus,
     SampleLostStatus,
+}
+
+
+extern "C" {
+    fn dds_set_log_sink(sink: extern "C" fn(level: c_int, message: *const c_char));
 }

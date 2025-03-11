@@ -1,11 +1,61 @@
+use core::panic;
 use std::{
-    ffi::{c_int, c_void, CString},
+    ffi::{c_int, c_void, CStr, CString},
+    ptr::{self, null_mut},
     time::Duration,
 };
 
-use crate::core::ReturnCodes;
+use crate::{core::ReturnCodes, IgnorelocalKind};
 
+/// Durability QoS: Applies to Topic, DataReader, DataWriter.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum DurabilityKind {
+    /// Volatile durability
+    Volatile,
+    /// Transient Local durability
+    TransientLocal,
+    /// Transient durability
+    Transient,
+    /// Persistent durability
+    Persistent,
+}
 
+/// History QoS: Applies to Topic, DataReader, DataWriter.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum HistoryKind {
+    /// Keep Last history
+    KeepLast,
+    /// Keep All history
+    KeepAll,
+}
+
+/// Ownership QoS: Applies to Topic, DataReader, DataWriter.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum OwnershipKind {
+    /// Shared Ownership
+    Shared,
+    /// Exclusive Ownership
+    Exclusive,
+}
+/// Liveliness QoS: Applies to Topic, DataReader, DataWriter.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum LivelinessKind {
+    Automatic,
+    ManualByParticipant,
+    ManualByTopic,
+}
+/// Reliability QoS: Applies to Topic, DataReader, DataWriter.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ReliabilityKind {
+    BestEffort,
+    Reliable,
+}
+/// DestinationOrder QoS: Applies to Topic, DataReader, DataWriter.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum DestinationOrderKind {
+    ByReceptionTimestamp,
+    BySourceTimestamp,
+}
 
 pub struct Qos {
     pub(crate) qos: *mut cyclonedds_sys::dds_qos_t,
@@ -167,11 +217,7 @@ impl Qos {
         lease_duration: Duration,
     ) {
         unsafe {
-            cyclonedds_sys::dds_qset_liveliness(
-                self.qos,
-                kind,
-                lease_duration.as_nanos() as i64,
-            );
+            cyclonedds_sys::dds_qset_liveliness(self.qos, kind, lease_duration.as_nanos() as i64);
         }
     }
 
@@ -395,10 +441,7 @@ impl Qos {
 
     pub fn set_entity_name(&mut self, name: &str) {
         unsafe {
-            cyclonedds_sys::dds_qset_entity_name(
-                self.qos,
-                CString::new(name).unwrap().as_ptr(),
-            );
+            cyclonedds_sys::dds_qset_entity_name(self.qos, CString::new(name).unwrap().as_ptr());
         }
     }
 
@@ -406,8 +449,7 @@ impl Qos {
         unsafe {
             let c_strings: Vec<CString> =
                 values.iter().map(|&s| CString::new(s).unwrap()).collect();
-            let c_ptrs: Vec<*const i8> =
-                c_strings.iter().map(|s: &CString| s.as_ptr()).collect();
+            let c_ptrs: Vec<*const i8> = c_strings.iter().map(|s: &CString| s.as_ptr()).collect();
             cyclonedds_sys::dds_qset_psmx_instances(
                 self.qos,
                 instances as u32,
@@ -417,7 +459,7 @@ impl Qos {
     }
     /// Get the userdata from a qos structure.
     ///
-    pub fn get_userdata(&mut self) -> Result<Vec<c_void>, &'static str> {
+    pub fn userdata(&self) -> Result<Vec<c_void>, &'static str> {
         let mut size = 0;
 
         let mut value = std::ptr::null_mut();
@@ -429,13 +471,251 @@ impl Qos {
             _ => Err("Failed to get userdata"),
         }
     }
+    /// Get the topic data from the qos structure
+    pub fn topic_data(&self) -> Result<String, &'static str> {
+        let mut value_ptr: *mut c_void = ptr::null_mut();
+        let mut size = 0;
 
-    pub fn topicdata(&self) -> Result<String, ReturnCodes> {
+        let bool =
+            unsafe { cyclonedds_sys::dds_qget_topicdata(self.qos, &mut value_ptr, &mut size) };
+
+        if bool {
+            Ok(unsafe { CStr::from_ptr(value_ptr as *const i8) }
+                .to_str()
+                .unwrap()
+                .to_string())
+        } else {
+            Err("Unable to get the topic data!")
+        }
+    }
+
+    /// Get the group data from the qos structure
+    pub fn group_data(&self) -> Result<String, &str> {
+        let mut value_ptr: *mut c_void = ptr::null_mut();
+        let mut size = 0;
+
+        let status =
+            unsafe { cyclonedds_sys::dds_qget_groupdata(self.qos, &mut value_ptr, &mut size) };
+
+        if status {
+            Ok(unsafe { CStr::from_ptr(value_ptr as *const i8) }
+                .to_str()
+                .unwrap()
+                .to_string())
+        } else {
+            Err("Unable to get the topic data!")
+        }
+    }
+
+    /// Get the durability policy from a qos structure.
+    pub fn durability(&self) -> Result<DurabilityKind, &'static str> {
+        let mut durability = cyclonedds_sys::dds_durability_kind::DDS_DURABILITY_VOLATILE;
+
+        let status = unsafe { cyclonedds_sys::dds_qget_durability(self.qos, &mut durability) };
+        match status {
+            true => Ok(match durability {
+                cyclonedds_sys::dds_durability_kind::DDS_DURABILITY_VOLATILE => {
+                    DurabilityKind::Volatile
+                }
+                cyclonedds_sys::dds_durability_kind::DDS_DURABILITY_TRANSIENT_LOCAL => {
+                    DurabilityKind::TransientLocal
+                }
+                cyclonedds_sys::dds_durability_kind::DDS_DURABILITY_TRANSIENT => {
+                    DurabilityKind::Transient
+                }
+                cyclonedds_sys::dds_durability_kind::DDS_DURABILITY_PERSISTENT => {
+                    DurabilityKind::Persistent
+                }
+            }),
+            false => Err("Failed to get durability"),
+        }
+    }
+
+    /// Get the history policy from a qos structure
+    pub fn history(&self) -> Result<HistoryKind, &'static str> {
+        let mut history_kind = cyclonedds_sys::dds_history_kind::DDS_HISTORY_KEEP_ALL;
+        let mut history_depth = 0;
+        match unsafe {
+            cyclonedds_sys::dds_qget_history(self.qos, &mut history_kind, &mut history_depth)
+        } {
+            true => todo!(),
+            false => todo!(),
+        }
+    }
+
+    /// Get the resource limits from a qos structure
+    pub fn resource_limits(&self) -> Result<ResourceLimits, &'static str> {
+        todo!()
+    }
+
+    pub fn presentation(&self) -> Result<Presentation, &'static str> {
+        todo!()
+    }
+
+    pub fn lifespan(&self) -> Result<Duration, &'static str> {
+        todo!()
+    }
+
+    pub fn deadline(&self) -> Result<Duration, &'static str> {
+        todo!()
+    }
+
+    pub fn latency_budget(&self) -> Result<Duration, &'static str> {
+        todo!()
+    }
+
+    pub fn ownership(&self) -> Result<OwnershipKind, &'static str> {
+        todo!()
+    }
+
+    pub fn ownership_strength(&self) -> Result<usize, &'static str> {
+        todo!()
+    }
+
+    pub fn liveliness(&self) -> Result<LivelinessKind, &'static str> {
+        todo!()
+    }
+
+    pub fn time_based_filter(&self) -> Result<Duration, &'static str> {
+        todo!()
+    }
+
+    pub fn partition(&self) -> Result<Vec<String>, &'static str> {
+        todo!()
+    }
+
+    pub fn reliability(&self) -> Result<ReliabilityKind, &'static str> {
+        todo!()
+    }
+
+    pub fn transport_priority(&self) -> Result<TransportPriority, &'static str> {
+        todo!()
+    }
+
+    pub fn destination_order(&self) -> Result<DestinationOrderKind, &'static str> {
+        todo!()
+    }
+
+    pub fn writer_data_lifecycle(&self) -> Result<bool, &'static str> {
+        todo!()
+    }
+
+    pub fn reader_data_lifecycle(&self) -> ReaderDataLifecycle {
+        todo!()
+    }
+    /// Get the writer batching from the [Qos]
+    pub fn writer_batching(&self) -> bool {
+        todo!()
+    }
+
+    pub fn durability_service(&self) -> DurabilityService {
+        todo!()
+    }
+
+    pub fn ignore_local(&self) -> IgnorelocalKind {
+        todo!()
+    }
+
+    pub fn property_names(&self) -> Vec<String> {
+        let mut value_count = 0;
+        let mut names_ptr: *mut *mut i8 = null_mut();
+
+        let mut names = Vec::with_capacity(value_count as usize);
+        match unsafe {
+            cyclonedds_sys::dds_qget_propnames(self.qos, &mut value_count, &mut names_ptr)
+        } {
+            true => unsafe {
+                for i in 0..value_count as isize {
+                    let name_ptr = *names_ptr.offset(i);
+                    if !name_ptr.is_null() {
+                        let c_str = CStr::from_ptr(name_ptr);
+                        names.push(c_str.to_string_lossy().into_owned());
+                    }
+                }
+            },
+            false => panic!("Failed to get propnames"),
+        }
+
+        names
+    }
+
+    pub fn prop(&self, name: &str) -> Option<Property> {
+        todo!()
+    }
+
+    pub fn binary_property_names(&self) -> Vec<String> {
+        todo!()
+    }
+
+    pub fn binary_property(&self, name: &str) -> Option<Vec<u8>> {
+        todo!()
+    }
+
+    pub fn type_consistency(&self) -> TypeConsistency {
+        todo!()
+    }
+
+    pub fn data_representation(&self) -> Vec<i8> {
+        todo!()
+    }
+
+    pub fn entity_name(&self) -> String {
+        todo!()
+    }
+
+    pub fn psmx_instances(&self) -> Vec<String> {
         todo!()
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TypeConsistency {
+    /// type consistency enforcement kind
+    pub kind: TypeConsistencyKind,
+    /// Store the boolean value for ignoring sequence bounds in type assignability checking
+    pub ignore_sequence_bounds: bool,
+    /// store the boolean value for ignoring string bounds in type assignability checking
+    pub ignore_string_bounds: bool,
+    /// store the boolean value for ignoring member names in type assignability checking
+    pub ignore_member_names: bool,
+    /// store the boolean value to prevent type widening in type assignability checking
+    pub prevent_type_widening: bool,
+    /// store the boolean value to force type validation in assignability checking
+    pub force_type_validation: bool,
+}
+#[derive(Debug, Clone, PartialEq)]
+pub struct Property {
+    name: String,
+    value: String,
+}
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DurabilityService {
+    service_cleanup_delay: Duration,
+    history_kind: HistoryKind,
+    history_depth: i32,
+    max_samples: i32,
+    max_instances: i32,
+    max_samples_per_instance: i32,
+}
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ReaderDataLifecycle {
+    autopurge_nowriter_samples_delay: Duration,
+    autopurge_disposed_samples_delay: Duration,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct TransportPriority(usize);
+
 impl Clone for Qos {
+    /*************  ✨ Codeium Command ⭐  *************/
+    /// Creates a deep copy of the current `Qos` object, returning a new `Qos` instance.
+    ///
+    /// # Safety
+    ///
+    /// This function calls an unsafe external function to copy the underlying QoS
+    /// structure. The caller must ensure that the original `Qos` object is valid.
+
+    /******  f86bd946-8fac-4c62-8526-50f603c8ca89  *******/
     fn clone(&self) -> Qos {
         unsafe {
             let qos_output = std::ptr::null_mut();
@@ -457,5 +737,95 @@ impl Drop for Qos {
 impl PartialEq for Qos {
     fn eq(&self, other: &Qos) -> bool {
         unsafe { cyclonedds_sys::dds_qos_equal(self.qos, other.qos) }
+    }
+}
+
+impl Default for Qos {
+    fn default() -> Qos {
+        Qos::new()
+    }
+}
+
+impl std::fmt::Debug for Qos {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Qos")
+            .field("userdata", &self.userdata())
+            .field("topic_data", &self.topic_data())
+            .field("group_data", &self.group_data())
+            .field("durability", &self.durability())
+            .field("history", &self.history())
+            .field("resource_limits", &self.resource_limits())
+            .field("presentation", &self.presentation())
+            .field("lifespan", &self.lifespan())
+            .field("deadline", &self.deadline())
+            .field("latency_budget", &self.latency_budget())
+            .field("ownership", &self.ownership())
+            .field("ownership_strength", &self.ownership_strength())
+            .field("liveliness", &self.liveliness())
+            .field("time_based_filter", &self.time_based_filter())
+            .field("partition", &self.partition())
+            .field("reliability", &self.reliability())
+            .field("transport_priority", &self.transport_priority())
+            .field("destination_order", &self.destination_order())
+            .field("writer_data_lifecycle", &self.writer_data_lifecycle())
+            .field("reader_data_lifecycle", &self.reader_data_lifecycle())
+            .field("writer_batching", &self.writer_batching())
+            .field("durability_service", &self.durability_service())
+            .field("ignore_local", &self.ignore_local())
+            .field("property_names", &self.property_names())
+            // TODO: Implement the individual properties
+            .field("binary_property_names", &self.binary_property_names())
+            .field("type_consistency", &self.type_consistency())
+            .field("data_representation", &self.data_representation())
+            .field("entity_name", &self.entity_name())
+            .field("psmx_instance", &self.psmx_instances())
+            .finish()
+    }
+}
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ResourceLimits {
+    max_samples: i32,
+    max_instances: i32,
+    max_samples_per_instance: i32,
+}
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Presentation {
+    access_scope: AccessScopeKind,
+    coherent_access: bool,
+    ordered_access: bool,
+}
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AccessScopeKind {
+    INSTANCE,
+    TOPIC,
+}
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TypeConsistencyKind {
+    DisallowTypeCoercion,
+    AllowTypeCoercion,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{domain::DomainParticipant, qos::Qos};
+
+    #[test]
+    fn test_new() {
+        let qos = super::Qos::new();
+    }
+
+    #[test]
+    fn test_reset() {
+        let mut qos = super::Qos::new();
+        qos.reset();
+    }
+
+    #[test]
+    fn test_debug() {
+        let particpant = DomainParticipant::default();
+        let qos = particpant.qos().expect("Failed to get a Qos");
+        print!("{:?}", qos);
+        drop(qos);
+        drop(particpant);
     }
 }
