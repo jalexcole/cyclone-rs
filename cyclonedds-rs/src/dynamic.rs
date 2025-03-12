@@ -169,7 +169,13 @@ impl DynamicType {
 
 struct DynamicTypeSpec;
 
-struct DynamicTypeDescriptor;
+struct DynamicTypeDescriptor {
+    kind: DynamicTypeKind,
+    name: String,
+    base_type: Option<cyclonedds_sys::dds_dynamic_type_spec>,
+    discriminator_type: Option<cyclonedds_sys::dds_dynamic_type_spec>,
+    num_bounds: u32, 
+}
 
 struct DynamicMemberDescriptor;
 

@@ -406,8 +406,14 @@ mod test {
 
     #[test]
     fn test_participant_topic() {
+        // Set the finest level for CycloneDDS logging
+        std::env::set_var("CYCLONEDDS_LOG_LEVEL", "trace");
         println!("Creating Participant");
         let mut participant = DomainParticipant::default();
+
+        
+
+
         println!("Created Participant");
         let topic = participant
             .topic::<HelloWorldData>()

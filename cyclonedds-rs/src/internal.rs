@@ -1,7 +1,9 @@
 use core::slice;
 use std::{
     ffi::{CStr, CString},
+    io::Read,
     mem::{self, offset_of},
+    process::{Command, Stdio},
     ptr,
 };
 
@@ -127,7 +129,9 @@ impl From<cyclonedds_sys::dds_topic_descriptor_t> for TopicDescriptor {
                     .unwrap()
                     .to_string()
             },
-            type_information: todo!("topic_descriptor.type_information has not been implemented yet"),
+            type_information: todo!(
+                "topic_descriptor.type_information has not been implemented yet"
+            ),
             type_mapping: topic_descriptor.type_mapping.into(),
             restrict_data_representation: topic_descriptor.restrict_data_representation,
         }
@@ -158,7 +162,10 @@ impl From<TopicDescriptor> for cyclonedds_sys::dds_topic_descriptor_t {
                 .expect("Unable to convert typename to c string")
                 .as_c_str()
                 .as_ptr(),
-            type_information: cyclonedds_sys::dds_type_meta_ser { data: topic_descriptor.type_information.as_ptr() as *const u8, sz: topic_descriptor.type_information.len() as u32 },
+            type_information: cyclonedds_sys::dds_type_meta_ser {
+                data: topic_descriptor.type_information.as_ptr() as *const u8,
+                sz: topic_descriptor.type_information.len() as u32,
+            },
             type_mapping: topic_descriptor.type_mapping.into(),
             restrict_data_representation: topic_descriptor.restrict_data_representation,
         }
@@ -217,5 +224,109 @@ impl From<cyclonedds_sys::dds_type_meta_ser> for TypeMetaSer {
         Self {
             data: unsafe { slice::from_raw_parts(value.data, value.sz as usize).to_vec() },
         }
+    }
+}
+
+use std::ffi::c_char;
+use std::os::raw::c_int;
+use tracing::{debug, error, info, trace, warn};
+use tracing_subscriber::FmtSubscriber;
+
+// extern "C" {
+//     fn dds_set_log_sink(sink: extern "C" fn(level: c_int, message: *const c_char));
+// }
+
+/// Map CycloneDDS log levels to `tracing` levels
+fn convert_log_level(level: c_int) -> tracing::Level {
+    match level {
+        1 => tracing::Level::ERROR, // Fatal
+        2 => tracing::Level::ERROR, // Error
+        3 => tracing::Level::WARN,  // Warning
+        4 => tracing::Level::INFO,  // Info
+        5 => tracing::Level::DEBUG, // Debug
+        6 => tracing::Level::TRACE, // Trace
+        _ => tracing::Level::TRACE, // Default to trace
+    }
+}
+
+/// Rust wrapper for the CycloneDDS log sink function
+extern "C" fn rust_log_sink(level: c_int, message: *const c_char) {
+    if message.is_null() {
+        return;
+    }
+
+    unsafe {
+        let c_str = CStr::from_ptr(message);
+        let msg = c_str.to_string_lossy();
+
+        let log_level = convert_log_level(level);
+
+        match log_level {
+            tracing::Level::ERROR => error!("{}", msg),
+            tracing::Level::WARN => warn!("{}", msg),
+            tracing::Level::INFO => info!("{}", msg),
+            tracing::Level::DEBUG => debug!("{}", msg),
+            tracing::Level::TRACE => trace!("{}", msg),
+        }
+    }
+}
+
+fn capture_cyclonedds_logs() -> String {
+    let mut child = Command::new("your_cyclonedds_app")
+        .env("CYCLONEDDS_LOG_LEVEL", "trace")
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Failed to start CycloneDDS process");
+
+    let mut output = String::new();
+    if let Some(ref mut stderr) = child.stderr {
+        stderr.read_to_string(&mut output).unwrap();
+    }
+
+    output
+}
+
+/// Registers Rust logging sink with CycloneDDS
+// pub fn enable_cyclonedds_tracing() {
+//     unsafe {
+//         dds_set_log_sink(rust_log_sink);
+//     }
+// }
+
+#[cfg(test)]
+mod tests {
+    use tracing::trace;
+    use tracing_subscriber::FmtSubscriber;
+
+    use crate::domain::DomainParticipant;
+
+    // use crate::internal::enable_cyclonedds_tracing;
+
+    #[test]
+    fn test_cyclonedds_trace_logging() {
+        // Set the finest level for CycloneDDS logging
+        std::env::set_var("CYCLONEDDS_LOG_LEVEL", "trace");
+
+        // Initialize `tracing`
+        let subscriber = FmtSubscriber::builder()
+            .with_max_level(tracing::Level::TRACE)
+            .finish();
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("Failed to set tracing subscriber");
+
+        let participant = DomainParticipant::default();
+        // Enable CycloneDDS logging via tracing
+        // enable_cyclonedds_tracing();
+
+        // Simulate logging (CycloneDDS should now use `tracing` for its logs)
+        trace!("CycloneDDS logging is now at TRACE level");
+
+        // Insert your CycloneDDS usage here...
+    }
+
+    #[test]
+    fn test_capture_cyclonedds_logs() {
+        let logs = crate::internal::capture_cyclonedds_logs();
+        assert!(logs.contains("TRACE"), "Logs did not capture TRACE level");
     }
 }
